@@ -1,10 +1,13 @@
 <?php
 
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\ComplaintController;
-use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\ComplaintManageController;
+use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\UserManageController;
+use App\Http\Controllers\ComplaintCommentController;
+use App\Http\Controllers\ComplaintController;
 use App\Http\Controllers\MapController;
+use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
 // =====================
@@ -35,6 +38,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/complaints/{complaint}/rating', [\App\Http\Controllers\ComplaintRatingController::class, 'store'])
         ->name('complaints.rating.store');
 
+    Route::post('/complaints/{complaint}/comments', [ComplaintCommentController::class, 'store'])
+        ->name('complaints.comments.store');
+
     // Profile (dari Breeze)
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -57,7 +63,17 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
 
     Route::get('/complaints/{complaint}', [ComplaintManageController::class, 'show'])->name('complaints.show');
     Route::patch('/complaints/{complaint}/status', [ComplaintManageController::class, 'updateStatus'])->name('complaints.updateStatus');
+    Route::post('/complaints/{complaint}/comments', [ComplaintCommentController::class, 'store'])
+        ->name('complaints.comments.store');
     Route::get('/map', [MapController::class, 'admin'])->name('map');
+
+    Route::resource('categories', CategoryController::class)
+        ->except(['show'])
+        ->names('categories');
+
+    Route::resource('users', UserManageController::class)
+        ->except(['show'])
+        ->names('users');
 });
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';

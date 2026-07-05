@@ -1,16 +1,25 @@
 <?php
-
 namespace App\Http\Controllers;
 
-use App\Models\Complaint;
 use App\Models\Category;
+use App\Models\Complaint;
 use App\Models\ComplaintUpdate;
+use App\Models\User;
+use App\Notifications\NewComplaintSubmitted;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 
 class ComplaintController extends Controller
 {
+
+    public function __construct()
+    {
+        // Batasi maksimal 6 percobaan submit per menit — mencegah spam/bot
+        $this->middleware('throttle:6,1')->only(['store']);
+    }
+
     // Daftar pengaduan (route: complaints.index) — arahkan ke dashboard
     public function index()
     {
@@ -31,8 +40,8 @@ class ComplaintController extends Controller
         if ($request->search) {
             $query->where(function ($q) use ($request) {
                 $q->where('title', 'like', '%' . $request->search . '%')
-                  ->orWhere('complaint_number', 'like', '%' . $request->search . '%')
-                  ->orWhere('location_name', 'like', '%' . $request->search . '%');
+                    ->orWhere('complaint_number', 'like', '%' . $request->search . '%')
+                    ->orWhere('location_name', 'like', '%' . $request->search . '%');
             });
         }
 
@@ -58,6 +67,15 @@ class ComplaintController extends Controller
     // Simpan pengaduan baru
     public function store(Request $request)
     {
+
+        $todayCount = Complaint::where('user_id', Auth::id())
+            ->whereDate('created_at', now())
+            ->count();
+
+        if ($todayCount >= 5) {
+            return back()->with('error', 'Anda sudah mengirim 5 pengaduan hari ini. Silakan coba lagi besok.');
+        }
+
         $request->validate([
             'category_id'   => 'required|exists:categories,id',
             'title'         => 'required|string|max:255',
@@ -104,6 +122,15 @@ class ComplaintController extends Controller
             'note'         => 'Pengaduan berhasil dikirim dan menunggu verifikasi.',
         ]);
 
+        // Notifikasi ke semua admin: ada pengaduan baru yang perlu diverifikasi
+        $admins = User::where('role', 'admin')->get();
+        if ($admins->isNotEmpty()) {
+            Notification::send($admins, new NewComplaintSubmitted($complaint));
+        }
+
+        return redirect()->route('complaints.show', $complaint->id)
+            ->with('success', 'Pengaduan berhasil dikirim! Nomor tiket: ' . $complaint->complaint_number);
+
         return redirect()->route('complaints.show', $complaint->id)
             ->with('success', 'Pengaduan berhasil dikirim! Nomor tiket: ' . $complaint->complaint_number);
     }
@@ -111,7 +138,7 @@ class ComplaintController extends Controller
     // Detail pengaduan + timeline
     public function show(Complaint $complaint)
     {
-        if (!Auth::user()->isAdmin() && $complaint->user_id !== Auth::id()) {
+        if (! Auth::user()->isAdmin() && $complaint->user_id !== Auth::id()) {
             abort(403);
         }
 
@@ -148,7 +175,10 @@ class ComplaintController extends Controller
 
         $photoPath = $complaint->photo;
         if ($request->hasFile('photo')) {
-            if ($photoPath) Storage::disk('public')->delete($photoPath);
+            if ($photoPath) {
+                Storage::disk('public')->delete($photoPath);
+            }
+
             $photoPath = $request->file('photo')->store('complaints', 'public');
         }
 

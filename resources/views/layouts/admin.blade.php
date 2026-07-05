@@ -70,6 +70,24 @@
                 <span>Peta Sebaran</span>
             </a>
 
+            <a href="{{ route('admin.categories.index') }}"
+               class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors
+                      {{ request()->routeIs('admin.categories.*')
+                         ? 'bg-blue-600 text-white'
+                         : 'text-gray-300 hover:bg-gray-800 hover:text-white' }}">
+                <i class="fas fa-tags w-4 text-center"></i>
+                <span>Kelola Kategori</span>
+            </a>
+
+            <a href="{{ route('admin.users.index') }}"
+               class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors
+                      {{ request()->routeIs('admin.users.*')
+                         ? 'bg-blue-600 text-white'
+                         : 'text-gray-300 hover:bg-gray-800 hover:text-white' }}">
+                <i class="fas fa-users w-4 text-center"></i>
+                <span>Kelola User</span>
+            </a>
+
             <div class="border-t border-gray-700 my-3"></div>
 
             <p class="text-gray-500 text-xs uppercase font-semibold px-3 mb-2 tracking-wider">

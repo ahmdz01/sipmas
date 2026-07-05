@@ -70,4 +70,9 @@ class Complaint extends Model
         return 'SPM-' . $year . '-' . str_pad($count, 4, '0', STR_PAD_LEFT);
     }
 
+    public function comments()
+    {
+        return $this->hasMany(ComplaintComment::class)->oldest();
+    }
+
 }
