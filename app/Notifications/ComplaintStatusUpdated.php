@@ -19,10 +19,13 @@ class ComplaintStatusUpdated extends Notification implements ShouldQueue
     ) {
     }
 
-    // Channel notifikasi: email + WhatsApp (Fonnte)
+    // Channel notifikasi: WhatsApp (Fonnte) duluan, baru email.
+    // Urutan ini penting: kalau 'mail' ditaruh duluan dan gagal (misal SMTP/host error),
+    // channel setelahnya tidak akan pernah dieksekusi. Fonnte ditaruh di depan
+    // supaya WA tetap dicoba terkirim meskipun email bermasalah.
     public function via($notifiable): array
     {
-        return ['mail', FonnteChannel::class];
+        return [FonnteChannel::class, 'mail'];
     }
 
     public function toMail($notifiable): MailMessage

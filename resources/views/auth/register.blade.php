@@ -62,6 +62,23 @@
                 @enderror
             </div>
 
+            <!-- Nomor WhatsApp -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Nomor WhatsApp</label>
+                <div class="relative">
+                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                        <i class="fab fa-whatsapp text-sm"></i>
+                    </span>
+                    <input type="text" name="phone" value="{{ old('phone') }}" required
+                           placeholder="08xxxxxxxxxx"
+                           class="w-full pl-9 pr-4 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500
+                                  {{ $errors->has('phone') ? 'border-red-400' : 'border-gray-300' }}">
+                </div>
+                @error('phone')
+                    <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                @enderror
+            </div>
+
             <!-- Password -->
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
