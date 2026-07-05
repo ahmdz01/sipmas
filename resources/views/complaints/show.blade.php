@@ -70,7 +70,19 @@
                 </div>
 
                 <!-- Foto Bukti -->
-                @if ($complaint->photo)
+                @if ($complaint->photos->count())
+                    <div class="bg-white rounded-lg shadow p-5">
+                        <h2 class="font-semibold text-gray-700 border-b pb-2 mb-3">Foto Bukti
+                            ({{ $complaint->photos->count() }})</h2>
+                        <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                            @foreach ($complaint->photos as $photo)
+                                <img src="{{ asset('storage/' . $photo->path) }}" alt="Foto bukti"
+                                    class="rounded-lg h-32 object-cover w-full cursor-pointer"
+                                    onclick="window.open('{{ asset('storage/' . $photo->path) }}', '_blank')">
+                            @endforeach
+                        </div>
+                    </div>
+                @elseif ($complaint->photo)
                     <div class="bg-white rounded-lg shadow p-5">
                         <h2 class="font-semibold text-gray-700 border-b pb-2 mb-3">Foto Bukti</h2>
                         <img src="{{ asset('storage/' . $complaint->photo) }}" alt="Foto pengaduan"
@@ -171,6 +183,12 @@
                                     <p class="text-sm font-semibold text-gray-700">
                                         {{ $update->statusBadge()['label'] ?? $update->status }}</p>
                                     <p class="text-xs text-gray-500">{{ $update->note }}</p>
+                                    <p class="text-xs text-gray-500">{{ $update->note }}</p>
+                                    @if ($update->photo)
+                                        <img src="{{ asset('storage/' . $update->photo) }}"
+                                            class="mt-2 rounded-lg max-h-32 object-cover cursor-pointer"
+                                            onclick="window.open('{{ asset('storage/' . $update->photo) }}','_blank')">
+                                    @endif
                                     <p class="text-xs text-gray-400 mt-1">
                                         {{ $update->user->name }} — {{ $update->created_at->format('d M Y H:i') }}
                                     </p>

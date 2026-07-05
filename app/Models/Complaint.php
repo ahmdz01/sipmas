@@ -75,4 +75,55 @@ class Complaint extends Model
         return $this->hasMany(ComplaintComment::class)->oldest();
     }
 
+    public function photos()
+    {
+        return $this->hasMany(ComplaintPhoto::class)->oldest();
+    }
+
+    // Batas waktu (jam) per status sebelum dianggap terlambat
+    public const SLA_HOURS = [
+        'pending'     => 48,  // 2 hari belum diverifikasi
+        'verified'    => 24,  // 1 hari belum mulai diproses
+        'in_progress' => 120, // 5 hari belum selesai
+    ];
+
+// Deadline SLA untuk status saat ini (null kalau status tidak punya SLA, misal resolved/rejected)
+    public function slaDeadline(): ?\Illuminate\Support\Carbon
+    {
+        if (! array_key_exists($this->status, self::SLA_HOURS)) {
+            return null;
+        }
+
+        return $this->created_at->copy()->addHours(self::SLA_HOURS[$this->status]);
+    }
+
+// Apakah pengaduan ini sudah melewati SLA?
+    public function isOverdue() : bool
+    {
+        $deadline = $this->slaDeadline();
+        return $deadline && now()->greaterThan($deadline);
+    }
+
+// Sudah terlambat berapa jam (0 jika belum lewat SLA)
+    public function overdueHours(): int
+    {
+        $deadline = $this->slaDeadline();
+        if (! $deadline || ! $this->isOverdue()) {
+            return 0;
+        }
+        return (int) $deadline->diffInHours(now());
+    }
+
+// Scope: hanya pengaduan yang sudah melewati SLA
+    public function scopeOverdue($query)
+    {
+        return $query->where(function ($q) {
+            foreach (self::SLA_HOURS as $status => $hours) {
+                $q->orWhere(function ($q2) use ($status, $hours) {
+                    $q2->where('status', $status)
+                        ->where('created_at', '<=', now()->subHours($hours));
+                });
+            }
+        });
+    }
 }

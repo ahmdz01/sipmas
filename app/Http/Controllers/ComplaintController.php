@@ -64,10 +64,8 @@ class ComplaintController extends Controller
         return view('complaints.create', compact('categories'));
     }
 
-    // Simpan pengaduan baru
     public function store(Request $request)
     {
-
         $todayCount = Complaint::where('user_id', Auth::id())
             ->whereDate('created_at', now())
             ->count();
@@ -83,7 +81,8 @@ class ComplaintController extends Controller
             'location_name' => 'required|string|max:255',
             'latitude'      => 'required|numeric|between:-90,90',
             'longitude'     => 'required|numeric|between:-180,180',
-            'photo'         => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'photos'        => 'nullable|array|max:5',
+            'photos.*'      => 'image|mimes:jpg,jpeg,png|max:2048',
         ], [
             'category_id.required'   => 'Kategori wajib dipilih.',
             'title.required'         => 'Judul pengaduan wajib diisi.',
@@ -92,13 +91,25 @@ class ComplaintController extends Controller
             'location_name.required' => 'Nama lokasi wajib diisi.',
             'latitude.required'      => 'Lokasi di peta wajib ditandai.',
             'longitude.required'     => 'Lokasi di peta wajib ditandai.',
-            'photo.image'            => 'File harus berupa gambar.',
-            'photo.max'              => 'Ukuran foto maksimal 2MB.',
+            'photos.max'             => 'Maksimal 5 foto bukti.',
+            'photos.*.image'         => 'File harus berupa gambar.',
+            'photos.*.max'           => 'Ukuran tiap foto maksimal 2MB.',
         ]);
 
-        $photoPath = null;
-        if ($request->hasFile('photo')) {
-            $photoPath = $request->file('photo')->store('complaints', 'public');
+        // --- Deteksi laporan duplikat (lihat Fitur 4) ---
+        $duplicates = Complaint::nearbyDuplicates($request->latitude, $request->longitude, $request->category_id);
+
+        if ($duplicates->isNotEmpty() && ! $request->boolean('confirm_duplicate')) {
+            return back()->withInput()
+                ->with('duplicates', $duplicates)
+                ->with('warning', 'Ditemukan pengaduan serupa di sekitar lokasi ini. Periksa dulu sebelum mengirim ulang.');
+        }
+
+        $photoPaths = [];
+        if ($request->hasFile('photos')) {
+            foreach ($request->file('photos') as $photoFile) {
+                $photoPaths[] = $photoFile->store('complaints', 'public');
+            }
         }
 
         $complaint = Complaint::create([
@@ -110,11 +121,14 @@ class ComplaintController extends Controller
             'location_name'    => $request->location_name,
             'latitude'         => $request->latitude,
             'longitude'        => $request->longitude,
-            'photo'            => $photoPath,
+            'photo'            => $photoPaths[0] ?? null, // kompatibilitas data lama
             'status'           => 'pending',
         ]);
 
-        // Catat riwayat awal
+        foreach ($photoPaths as $path) {
+            $complaint->photos()->create(['path' => $path]);
+        }
+
         ComplaintUpdate::create([
             'complaint_id' => $complaint->id,
             'user_id'      => Auth::id(),
@@ -122,7 +136,6 @@ class ComplaintController extends Controller
             'note'         => 'Pengaduan berhasil dikirim dan menunggu verifikasi.',
         ]);
 
-        // Notifikasi ke semua admin: ada pengaduan baru yang perlu diverifikasi
         $admins = User::where('role', 'admin')->get();
         if ($admins->isNotEmpty()) {
             Notification::send($admins, new NewComplaintSubmitted($complaint));
@@ -130,33 +143,28 @@ class ComplaintController extends Controller
 
         return redirect()->route('complaints.show', $complaint->id)
             ->with('success', 'Pengaduan berhasil dikirim! Nomor tiket: ' . $complaint->complaint_number);
-
-        return redirect()->route('complaints.show', $complaint->id)
-            ->with('success', 'Pengaduan berhasil dikirim! Nomor tiket: ' . $complaint->complaint_number);
     }
 
-    // Detail pengaduan + timeline
     public function show(Complaint $complaint)
     {
         if (! Auth::user()->isAdmin() && $complaint->user_id !== Auth::id()) {
             abort(403);
         }
 
-        $complaint->load(['category', 'user', 'updates.user', 'handler', 'rating']);
+        $complaint->load(['category', 'user', 'updates.user', 'handler', 'rating', 'photos', 'comments.user']);
         return view('complaints.show', compact('complaint'));
     }
 
-    // Form edit (hanya jika masih pending)
     public function edit(Complaint $complaint)
     {
         if ($complaint->user_id !== Auth::id() || $complaint->status !== 'pending') {
             abort(403, 'Pengaduan tidak dapat diedit.');
         }
         $categories = Category::all();
+        $complaint->load('photos');
         return view('complaints.edit', compact('complaint', 'categories'));
     }
 
-    // Update pengaduan
     public function update(Request $request, Complaint $complaint)
     {
         if ($complaint->user_id !== Auth::id() || $complaint->status !== 'pending') {
@@ -170,17 +178,9 @@ class ComplaintController extends Controller
             'location_name' => 'required|string|max:255',
             'latitude'      => 'required|numeric|between:-90,90',
             'longitude'     => 'required|numeric|between:-180,180',
-            'photo'         => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'photos'        => 'nullable|array|max:5',
+            'photos.*'      => 'image|mimes:jpg,jpeg,png|max:2048',
         ]);
-
-        $photoPath = $complaint->photo;
-        if ($request->hasFile('photo')) {
-            if ($photoPath) {
-                Storage::disk('public')->delete($photoPath);
-            }
-
-            $photoPath = $request->file('photo')->store('complaints', 'public');
-        }
 
         $complaint->update([
             'category_id'   => $request->category_id,
@@ -189,13 +189,24 @@ class ComplaintController extends Controller
             'location_name' => $request->location_name,
             'latitude'      => $request->latitude,
             'longitude'     => $request->longitude,
-            'photo'         => $photoPath,
         ]);
+
+        // Foto lama tidak diganti otomatis — dihapus lewat tombol hapus per foto di galeri.
+        // Foto baru yang diupload ditambahkan ke galeri.
+        if ($request->hasFile('photos')) {
+            foreach ($request->file('photos') as $photoFile) {
+                $path = $photoFile->store('complaints', 'public');
+                $complaint->photos()->create(['path' => $path]);
+
+                if (! $complaint->photo) {
+                    $complaint->update(['photo' => $path]);
+                }
+            }
+        }
 
         return redirect()->route('complaints.show', $complaint->id)
             ->with('success', 'Pengaduan berhasil diperbarui.');
     }
-
     // Hapus pengaduan (hanya jika masih pending)
     public function destroy(Complaint $complaint)
     {

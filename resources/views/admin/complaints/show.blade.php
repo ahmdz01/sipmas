@@ -84,22 +84,23 @@
                 @endif
             </div>
 
-            <!-- Foto Bukti -->
-            @if ($complaint->photo)
+            @if ($complaint->photos->count())
+                <div class="bg-white rounded-lg shadow p-5">
+                    <h2 class="font-semibold text-gray-700 border-b pb-2 mb-3">Foto Bukti
+                        ({{ $complaint->photos->count() }})</h2>
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                        @foreach ($complaint->photos as $photo)
+                            <img src="{{ asset('storage/' . $photo->path) }}" alt="Foto bukti"
+                                class="rounded-lg h-32 object-cover w-full cursor-pointer"
+                                onclick="window.open('{{ asset('storage/' . $photo->path) }}', '_blank')">
+                        @endforeach
+                    </div>
+                </div>
+            @elseif ($complaint->photo)
                 <div class="bg-white rounded-lg shadow p-5">
                     <h2 class="font-semibold text-gray-700 border-b pb-2 mb-3">Foto Bukti</h2>
-                    <img src="{{ asset('storage/' . $complaint->photo) }}" alt="Foto bukti"
-                        class="rounded-lg max-h-72 object-cover w-full cursor-pointer"
-                        onclick="document.getElementById('modalFoto').classList.remove('hidden')">
-                    <p class="text-xs text-gray-400 mt-2">Klik foto untuk memperbesar.</p>
-                </div>
-
-                <!-- Modal Foto -->
-                <div id="modalFoto"
-                    class="hidden fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4"
-                    onclick="this.classList.add('hidden')">
-                    <img src="{{ asset('storage/' . $complaint->photo) }}"
-                        class="max-w-full max-h-full rounded-lg shadow-xl">
+                    <img src="{{ asset('storage/' . $complaint->photo) }}" alt="Foto pengaduan"
+                        class="rounded-lg max-h-64 object-cover w-full">
                 </div>
             @endif
 
@@ -123,7 +124,7 @@
                     </h2>
 
                     <form action="{{ route('admin.complaints.updateStatus', $complaint->id) }}" method="POST"
-                        id="formUpdateStatus">
+                        id="formUpdateStatus" enctype="multipart/form-data">
                         @csrf
                         @method('PATCH')
 
@@ -169,6 +170,20 @@
                                 class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm
                                      focus:outline-none focus:ring-2 focus:ring-red-500">{{ old('rejection_reason') }}</textarea>
                             @error('rejection_reason')
+                                <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <!-- Foto Bukti Penyelesaian (muncul saat pilih resolved) -->
+                        <div id="resolutionPhotoBox" class="mb-4 hidden">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                Foto Bukti Penyelesaian
+                            </label>
+                            <input type="file" name="resolution_photo" accept="image/*"
+                                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm
+             focus:outline-none focus:ring-2 focus:ring-green-500">
+                            <p class="text-xs text-gray-400 mt-1">Upload foto hasil penanganan sebagai bukti ke warga.</p>
+                            @error('resolution_photo')
                                 <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                             @enderror
                         </div>
@@ -248,6 +263,11 @@
                                     <p class="text-sm font-semibold text-gray-800">{{ $ub['label'] }}</p>
                                     @if ($update->note)
                                         <p class="text-xs text-gray-600 mt-0.5">{{ $update->note }}</p>
+                                    @endif
+                                    @if ($update->photo)
+                                        <img src="{{ asset('storage/' . $update->photo) }}"
+                                            class="mt-2 rounded-lg max-h-32 object-cover cursor-pointer"
+                                            onclick="window.open('{{ asset('storage/' . $update->photo) }}','_blank')">
                                     @endif
                                     <p class="text-xs text-gray-400 mt-1">
                                         {{ $update->user->name }}
@@ -330,8 +350,8 @@
 
         // Toggle kotak alasan penolakan
         function toggleRejection(val) {
-            const box = document.getElementById('rejectionBox');
-            box.classList.toggle('hidden', val !== 'rejected');
+            document.getElementById('rejectionBox').classList.toggle('hidden', val !== 'rejected');
+            document.getElementById('resolutionPhotoBox').classList.toggle('hidden', val !== 'resolved');
         }
     </script>
 @endpush

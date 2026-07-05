@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class ComplaintUpdate extends Model
 {
-    protected $fillable = ['complaint_id', 'user_id', 'status', 'note'];
+    protected $fillable = ['complaint_id', 'user_id', 'status', 'note', 'photo'];
 
     public function complaint()
     {

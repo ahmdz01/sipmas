@@ -33,6 +33,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // CRUD Pengaduan
     Route::resource('complaints', ComplaintController::class);
+    Route::delete('/complaints/photos/{photo}', [\App\Http\Controllers\ComplaintPhotoController::class, 'destroy'])
+    ->name('complaints.photos.destroy');
 
     // Rating & ulasan pengaduan (hanya untuk yang sudah selesai)
     Route::post('/complaints/{complaint}/rating', [\App\Http\Controllers\ComplaintRatingController::class, 'store'])

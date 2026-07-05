@@ -1,15 +1,14 @@
 <?php
-
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Category;
 use App\Models\Complaint;
 use App\Models\ComplaintUpdate;
-use App\Models\Category;
 use App\Notifications\ComplaintStatusUpdated;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Barryvdh\DomPDF\Facade\Pdf;
 
 class ComplaintManageController extends Controller
 {
@@ -31,16 +30,18 @@ class ComplaintManageController extends Controller
         return view('admin.complaints.show', compact('complaint'));
     }
 
-    // Update status pengaduan
     public function updateStatus(Request $request, Complaint $complaint)
     {
         $request->validate([
-            'status' => 'required|in:verified,in_progress,resolved,rejected',
-            'note'   => 'nullable|string|max:500',
+            'status'           => 'required|in:verified,in_progress,resolved,rejected',
+            'note'             => 'nullable|string|max:500',
             'rejection_reason' => 'required_if:status,rejected|nullable|string|max:500',
+            'resolution_photo' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
         ], [
-            'status.required'            => 'Status wajib dipilih.',
+            'status.required'              => 'Status wajib dipilih.',
             'rejection_reason.required_if' => 'Alasan penolakan wajib diisi jika ditolak.',
+            'resolution_photo.image'       => 'File harus berupa gambar.',
+            'resolution_photo.max'         => 'Ukuran foto maksimal 2MB.',
         ]);
 
         $updateData = [
@@ -62,11 +63,17 @@ class ComplaintManageController extends Controller
 
         $complaint->update($updateData);
 
+        $photoPath = null;
+        if ($request->hasFile('resolution_photo')) {
+            $photoPath = $request->file('resolution_photo')->store('complaints/resolutions', 'public');
+        }
+
         ComplaintUpdate::create([
             'complaint_id' => $complaint->id,
             'user_id'      => Auth::id(),
             'status'       => $request->status,
             'note'         => $request->note ?? 'Status diperbarui oleh admin.',
+            'photo'        => $photoPath,
         ]);
 
         $complaint->user->notify(new ComplaintStatusUpdated($complaint, $request->note));
@@ -154,9 +161,13 @@ class ComplaintManageController extends Controller
         if ($request->search) {
             $query->where(function ($q) use ($request) {
                 $q->where('title', 'like', '%' . $request->search . '%')
-                  ->orWhere('complaint_number', 'like', '%' . $request->search . '%')
-                  ->orWhere('location_name', 'like', '%' . $request->search . '%');
+                    ->orWhere('complaint_number', 'like', '%' . $request->search . '%')
+                    ->orWhere('location_name', 'like', '%' . $request->search . '%');
             });
+        }
+
+        if ($request->boolean('overdue')) {
+            $query->overdue()->whereNotIn('status', ['resolved', 'rejected']);
         }
 
         return $query;
