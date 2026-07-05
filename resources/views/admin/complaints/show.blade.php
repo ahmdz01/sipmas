@@ -203,6 +203,33 @@
         </div>
         @endif
 
+        <!-- Penilaian Masyarakat -->
+        @if($complaint->status === 'resolved')
+        <div class="bg-white rounded-lg shadow p-5">
+            <h2 class="font-semibold text-gray-700 border-b pb-2 mb-4">
+                <i class="fas fa-star text-yellow-400 mr-2"></i>Penilaian Masyarakat
+            </h2>
+
+            @if($complaint->rating)
+                <div class="flex items-center gap-1 mb-2">
+                    @for($i = 1; $i <= 5; $i++)
+                        <i class="fas fa-star {{ $i <= $complaint->rating->rating ? 'text-yellow-400' : 'text-gray-200' }}"></i>
+                    @endfor
+                    <span class="text-sm text-gray-500 ml-2">({{ $complaint->rating->rating }}/5)</span>
+                </div>
+                @if($complaint->rating->review)
+                    <p class="text-sm text-gray-600 italic bg-gray-50 rounded p-3">
+                        "{{ $complaint->rating->review }}"
+                    </p>
+                @else
+                    <p class="text-xs text-gray-400">Pelapor tidak menuliskan ulasan.</p>
+                @endif
+            @else
+                <p class="text-sm text-gray-400">Pelapor belum memberikan penilaian.</p>
+            @endif
+        </div>
+        @endif
+
         <!-- Timeline Riwayat -->
         <div class="bg-white rounded-lg shadow p-5">
             <h2 class="font-semibold text-gray-700 border-b pb-2 mb-4">Riwayat Perubahan</h2>

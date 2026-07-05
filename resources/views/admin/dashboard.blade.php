@@ -25,7 +25,7 @@
 </div>
 
 <!-- Statistik Tambahan -->
-<div class="grid grid-cols-3 gap-4 mb-6">
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
     <div class="bg-white rounded-lg shadow p-4 flex items-center gap-4">
         <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center">
             <i class="fas fa-check text-blue-500"></i>
@@ -51,6 +51,20 @@
         <div>
             <p class="text-xl font-bold text-gray-800">{{ $stats['users'] }}</p>
             <p class="text-xs text-gray-500">Total Pelapor</p>
+        </div>
+    </div>
+    <div class="bg-white rounded-lg shadow p-4 flex items-center gap-4">
+        <div class="w-10 h-10 rounded-full bg-yellow-50 flex items-center justify-center">
+            <i class="fas fa-star text-yellow-400"></i>
+        </div>
+        <div>
+            <p class="text-xl font-bold text-gray-800">
+                {{ $stats['avgRating'] > 0 ? $stats['avgRating'] : '-' }}
+                @if($stats['avgRating'] > 0)
+                    <span class="text-sm font-normal text-gray-400">/5</span>
+                @endif
+            </p>
+            <p class="text-xs text-gray-500">Rating Rata-rata ({{ $stats['totalRatings'] }} ulasan)</p>
         </div>
     </div>
 </div>
@@ -128,5 +142,52 @@
         </div>
     </div>
 </div>
+
+<!-- Grafik Tren Pengaduan Bulanan -->
+<div class="bg-white rounded-lg shadow mt-6">
+    <div class="px-5 py-4 border-b">
+        <h2 class="font-semibold text-gray-700">Tren Pengaduan {{ date('Y') }}</h2>
+    </div>
+    <div class="p-5">
+        <canvas id="monthlyChart" height="90"></canvas>
+    </div>
+</div>
+
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+    const monthlyLabels = {!! json_encode($byMonth->pluck('month')) !!};
+    const monthlyData   = {!! json_encode($byMonth->pluck('total')) !!};
+
+    new Chart(document.getElementById('monthlyChart'), {
+        type: 'line',
+        data: {
+            labels: monthlyLabels,
+            datasets: [{
+                label: 'Jumlah Pengaduan',
+                data: monthlyData,
+                borderColor: '#3b82f6',
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                tension: 0.3,
+                fill: true,
+                pointRadius: 4,
+                pointBackgroundColor: '#3b82f6',
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: { stepSize: 1 }
+                }
+            }
+        }
+    });
+</script>
+@endpush
 
 @endsection

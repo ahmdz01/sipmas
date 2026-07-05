@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -14,10 +13,10 @@ class Complaint extends Model
     ];
 
     protected $casts = [
-        'verified_at'  => 'datetime',
-        'resolved_at'  => 'datetime',
-        'latitude'     => 'float',
-        'longitude'    => 'float',
+        'verified_at' => 'datetime',
+        'resolved_at' => 'datetime',
+        'latitude'    => 'float',
+        'longitude'   => 'float',
     ];
 
     // Relasi ke user pelapor
@@ -44,16 +43,22 @@ class Complaint extends Model
         return $this->hasMany(ComplaintUpdate::class)->latest();
     }
 
+    // Relasi ke rating/ulasan (jika sudah diberi)
+    public function rating()
+    {
+        return $this->hasOne(ComplaintRating::class);
+    }
+
     // Helper: badge status dengan warna
     public function statusBadge(): array
     {
-        return match($this->status) {
-            'pending'     => ['label' => 'Menunggu',      'class' => 'bg-yellow-100 text-yellow-800'],
-            'verified'    => ['label' => 'Diverifikasi',  'class' => 'bg-blue-100 text-blue-800'],
-            'in_progress' => ['label' => 'Diproses',      'class' => 'bg-purple-100 text-purple-800'],
-            'resolved'    => ['label' => 'Selesai',       'class' => 'bg-green-100 text-green-800'],
-            'rejected'    => ['label' => 'Ditolak',       'class' => 'bg-red-100 text-red-800'],
-            default       => ['label' => 'Unknown',       'class' => 'bg-gray-100 text-gray-800'],
+        return match ($this->status) {
+            'pending'     => ['label' => 'Menunggu', 'class' => 'bg-yellow-100 text-yellow-800'],
+            'verified'    => ['label' => 'Diverifikasi', 'class' => 'bg-blue-100 text-blue-800'],
+            'in_progress' => ['label' => 'Diproses', 'class' => 'bg-purple-100 text-purple-800'],
+            'resolved'    => ['label' => 'Selesai', 'class' => 'bg-green-100 text-green-800'],
+            'rejected'    => ['label' => 'Ditolak', 'class' => 'bg-red-100 text-red-800'],
+            default       => ['label' => 'Unknown', 'class' => 'bg-gray-100 text-gray-800'],
         };
     }
 
@@ -64,4 +69,5 @@ class Complaint extends Model
         $count = self::whereYear('created_at', $year)->count() + 1;
         return 'SPM-' . $year . '-' . str_pad($count, 4, '0', STR_PAD_LEFT);
     }
+
 }

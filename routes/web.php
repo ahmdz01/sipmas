@@ -31,6 +31,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // CRUD Pengaduan
     Route::resource('complaints', ComplaintController::class);
 
+    // Rating & ulasan pengaduan (hanya untuk yang sudah selesai)
+    Route::post('/complaints/{complaint}/rating', [\App\Http\Controllers\ComplaintRatingController::class, 'store'])
+        ->name('complaints.rating.store');
+
     // Profile (dari Breeze)
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -44,7 +48,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
 
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
     Route::get('/complaints', [ComplaintManageController::class, 'index'])->name('complaints.index');
+
+    // Export (ditaruh SEBELUM route {complaint} supaya tidak bentrok)
+    Route::get('/complaints/export/csv', [ComplaintManageController::class, 'exportCsv'])->name('complaints.export.csv');
+    Route::get('/complaints/export/pdf', [ComplaintManageController::class, 'exportPdf'])->name('complaints.export.pdf');
+
     Route::get('/complaints/{complaint}', [ComplaintManageController::class, 'show'])->name('complaints.show');
     Route::patch('/complaints/{complaint}/status', [ComplaintManageController::class, 'updateStatus'])->name('complaints.updateStatus');
     Route::get('/map', [MapController::class, 'admin'])->name('map');

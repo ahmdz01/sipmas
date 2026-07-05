@@ -11,13 +11,32 @@ use Illuminate\Support\Facades\Storage;
 
 class ComplaintController extends Controller
 {
-    // Dashboard user: lihat pengaduan milik sendiri
-    public function dashboard()
+    // Daftar pengaduan (route: complaints.index) — arahkan ke dashboard
+    public function index()
     {
-        $complaints = Complaint::with('category')
+        return redirect()->route('dashboard');
+    }
+
+    // Dashboard user: lihat pengaduan milik sendiri + filter & search
+    public function dashboard(Request $request)
+    {
+        $query = Complaint::with('category')
             ->where('user_id', Auth::id())
-            ->latest()
-            ->paginate(10);
+            ->latest();
+
+        if ($request->status) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->search) {
+            $query->where(function ($q) use ($request) {
+                $q->where('title', 'like', '%' . $request->search . '%')
+                  ->orWhere('complaint_number', 'like', '%' . $request->search . '%')
+                  ->orWhere('location_name', 'like', '%' . $request->search . '%');
+            });
+        }
+
+        $complaints = $query->paginate(10)->withQueryString();
 
         $stats = [
             'total'       => Complaint::where('user_id', Auth::id())->count(),
@@ -92,13 +111,11 @@ class ComplaintController extends Controller
     // Detail pengaduan + timeline
     public function show(Complaint $complaint)
     {
-        // User hanya bisa lihat pengaduan milik sendiri
-        // Admin bisa lihat semua (dicek di view)
         if (!Auth::user()->isAdmin() && $complaint->user_id !== Auth::id()) {
             abort(403);
         }
 
-        $complaint->load(['category', 'user', 'updates.user', 'handler']);
+        $complaint->load(['category', 'user', 'updates.user', 'handler', 'rating']);
         return view('complaints.show', compact('complaint'));
     }
 

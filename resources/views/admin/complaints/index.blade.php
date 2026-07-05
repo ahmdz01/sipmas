@@ -53,6 +53,16 @@
             <i class="fas fa-search mr-1"></i> Cari
         </button>
 
+        <a href="{{ route('admin.complaints.export.csv', request()->query()) }}"
+           class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-700 flex items-center gap-1">
+            <i class="fas fa-file-csv"></i> Excel/CSV
+        </a>
+
+        <a href="{{ route('admin.complaints.export.pdf', request()->query()) }}"
+           class="bg-red-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-red-700 flex items-center gap-1">
+            <i class="fas fa-file-pdf"></i> PDF
+        </a>
+
         @if(request()->hasAny(['search','status','category_id']))
         <a href="{{ route('admin.complaints.index') }}"
            class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-300">

@@ -111,6 +111,50 @@
             </div>
             @endif
 
+            <!-- Rating & Ulasan (muncul kalau pengaduan sudah selesai & milik user ini) -->
+            @if($complaint->status === 'resolved' && auth()->id() === $complaint->user_id)
+            <div class="bg-white rounded-lg shadow p-4">
+                <h2 class="font-semibold text-gray-700 mb-3">Penilaian Layanan</h2>
+
+                @if($complaint->rating)
+                    <div class="flex items-center gap-1 mb-2">
+                        @for($i = 1; $i <= 5; $i++)
+                            <i class="fas fa-star {{ $i <= $complaint->rating->rating ? 'text-yellow-400' : 'text-gray-200' }}"></i>
+                        @endfor
+                    </div>
+                    @if($complaint->rating->review)
+                        <p class="text-sm text-gray-600 italic">"{{ $complaint->rating->review }}"</p>
+                    @endif
+                    <p class="text-xs text-gray-400 mt-2">Terima kasih atas penilaian Anda.</p>
+                @else
+                    <form action="{{ route('complaints.rating.store', $complaint->id) }}" method="POST" x-data="{ star: 0 }">
+                        @csrf
+                        <p class="text-sm text-gray-500 mb-2">Bagaimana penanganan pengaduan ini?</p>
+
+                        <div class="flex gap-1 mb-3">
+                            @for($i = 1; $i <= 5; $i++)
+                            <label class="cursor-pointer">
+                                <input type="radio" name="rating" value="{{ $i }}" class="hidden peer" required
+                                       @click="star = {{ $i }}">
+                                <i class="fas fa-star text-2xl transition-colors"
+                                   :class="star >= {{ $i }} ? 'text-yellow-400' : 'text-gray-200'"></i>
+                            </label>
+                            @endfor
+                        </div>
+
+                        <textarea name="review" rows="2" maxlength="500"
+                                  placeholder="Tulis ulasan singkat (opsional)..."
+                                  class="w-full text-sm border-gray-200 rounded-lg mb-3"></textarea>
+
+                        <button type="submit"
+                                class="w-full bg-blue-600 text-white py-2 rounded-lg text-sm hover:bg-blue-700">
+                            Kirim Penilaian
+                        </button>
+                    </form>
+                @endif
+            </div>
+            @endif
+
             <!-- Timeline Status -->
             <div class="bg-white rounded-lg shadow p-4">
                 <h2 class="font-semibold text-gray-700 border-b pb-2 mb-4">Riwayat Status</h2>
