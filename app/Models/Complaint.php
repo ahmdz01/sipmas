@@ -114,6 +114,26 @@ class Complaint extends Model
         return (int) $deadline->diffInHours(now());
     }
 
+    public function overdueLabel(): string
+{
+    $hours = $this->overdueHours();
+
+    if ($hours <= 0) {
+        return '';
+    }
+
+    $days = intdiv($hours, 24);
+    $remainingHours = $hours % 24;
+
+    if ($days > 0) {
+        return $remainingHours > 0
+            ? "{$days} hari {$remainingHours} jam"
+            : "{$days} hari";
+    }
+
+    return "{$hours} jam";
+}
+
 // Scope: hanya pengaduan yang sudah melewati SLA
     public function scopeOverdue($query)
     {
