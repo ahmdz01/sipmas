@@ -112,6 +112,27 @@
                 @enderror
             </div>
 
+            @if (session('duplicates') && session('duplicates')->isNotEmpty())
+                <div class="bg-yellow-50 border border-yellow-300 text-yellow-800 px-4 py-3 rounded-lg">
+                    <p class="font-semibold mb-2 flex items-center gap-2">
+                        <i class="fas fa-exclamation-triangle"></i> {{ session('warning') }}
+                    </p>
+                    <ul class="list-disc list-inside text-sm space-y-1 mb-3">
+                        @foreach (session('duplicates') as $dup)
+                            <li>
+                                <span class="font-mono text-xs">{{ $dup->complaint_number }}</span> -
+                                {{ $dup->title }} ({{ $dup->created_at->format('d M Y') }})
+                            </li>
+                        @endforeach
+                    </ul>
+                    <label class="flex items-center gap-2 text-sm">
+                        <input type="checkbox" name="confirm_duplicate" value="1"
+                            class="rounded border-gray-300 text-yellow-600 focus:ring-yellow-500">
+                        Saya tetap ingin mengirim pengaduan ini meskipun sudah ada laporan serupa.
+                    </label>
+                </div>
+            @endif
+
             <div class="flex gap-3">
                 <button type="submit"
                     class="bg-blue-600 text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-blue-700 flex items-center gap-2">

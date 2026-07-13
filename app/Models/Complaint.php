@@ -146,4 +146,26 @@ class Complaint extends Model
             }
         });
     }
+
+    public static function nearbyDuplicates($latitude, $longitude, $categoryId, float $radiusKm = 0.1, int $days = 30)
+    {
+        if (! $latitude || ! $longitude) {
+            return collect();
+        }
+
+        return self::query()
+            ->selectRaw('*, (
+                6371 * acos(
+                    cos(radians(?)) * cos(radians(latitude)) *
+                    cos(radians(longitude) - radians(?)) +
+                    sin(radians(?)) * sin(radians(latitude))
+                )
+            ) AS distance', [$latitude, $longitude, $latitude])
+            ->where('category_id', $categoryId)
+            ->whereNotIn('status', ['resolved', 'rejected'])
+            ->where('created_at', '>=', now()->subDays($days))
+            ->having('distance', '<=', $radiusKm)
+            ->orderBy('distance')
+            ->get();
+    }
 }
